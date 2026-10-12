@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Trade P&L Calculator</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2563eb">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="P&L Calc">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#14171c;--muted:#6b7280;--line:#e3e6eb;--accent:#2563eb;--win:#059669;--loss:#dc2626;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1216;--card:#181c22;--text:#eef0f3;--muted:#98a1ae;--line:#2a303a;--accent:#60a5fa;--win:#34d399;--loss:#f87171}}
+:root[data-theme="dark"]{--bg:#0f1216;--card:#181c22;--text:#eef0f3;--muted:#98a1ae;--line:#2a303a;--accent:#60a5fa;--win:#34d399;--loss:#f87171}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.4}
+.wrap{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:20px;margin:4px 0 14px}
+.tabs{display:flex;gap:6px;background:var(--line);padding:4px;border-radius:12px;margin-bottom:14px}
+.tabs button{flex:1;border:0;padding:9px 4px;border-radius:9px;background:transparent;color:var(--muted);font-size:12px;font-weight:600}
+.tabs button.on{background:var(--card);color:var(--text)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+input,select{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);font-size:16px}
+.full{grid-column:1/-1}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-weight:600;font-size:14px}
+.seg button.on.buy{background:var(--win);border-color:var(--win);color:#fff}
+.seg button.on.sell{background:var(--loss);border-color:var(--loss);color:#fff}
+.big{font-size:34px;font-weight:700;margin:2px 0 10px}
+.win{color:var(--win)}.loss{color:var(--loss)}
+.row{display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
+.row span:first-child{color:var(--muted)}
+.hint{font-size:12px;color:var(--muted);margin-top:8px}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Trade P&amp;L Calculator</h1>
+  <div class="tabs">
+    <button id="t1" class="on">P&amp;L</button>
+    <button id="t2">Position size</button>
+    <button id="t3">TP by amount</button>
+    <button id="t4">TP by RRR</button>
+  </div>
+
+  <div class="card">
+    <div class="grid">
+      <div class="full"><label>Instrument</label>
+        <select id="inst">
+          <option>EURUSD</option><option>XAUUSD</option><option>BTCUSD</option><option>GBPUSD</option><option>AUDUSD</option><option>USDJPY</option><option>NZDJPY</option><option>USDCAD</option><option>AUDCAD</option>
+          <option>US500</option><option>NAS100</option><option>US30</option><option>JPN225</option><option>GER40</option><option>UK100</option>
+        </select></div>
+      <div class="full"><label>Direction</label>
+        <div class="seg"><button id="buy" class="on buy">Buy</button><button id="sell" class="sell">Sell</button></div></div>
+      <div id="lotBox"><label>Lot size</label><input id="lots" type="number" inputmode="decimal" value="0.5" step="0.01"></div>
+      <div><label>Entry</label><input id="entry" type="number" inputmode="decimal" value="1.0850" step="any"></div>
+      <div><label id="exitL">Exit</label><input id="exit" type="number" inputmode="decimal" value="1.0890" step="any"></div>
+      <div class="hide" id="slBox"><label>Stop loss</label><input id="sl" type="number" inputmode="decimal" value="1.0820" step="any"></div>
+      <div id="tpBox"><label>Take profit (optional)</label><input id="tp" type="number" inputmode="decimal" placeholder="—" step="any"></div>
+      <div><label>Commission ($/lot, round trip)</label><input id="comm" type="number" inputmode="decimal" value="0" step="any"></div>
+      <div class="full"><label>Contract size (units per 1.0 lot)</label><input id="csize" type="number" inputmode="decimal" value="100000" step="any"></div>
+      <div class="hide full" id="fxBox"><label>USDCAD rate (converts CAD profit to USD)</label><input id="fx" type="number" inputmode="decimal" value="1.3600" step="any"></div>
+      <div id="balBox"><label>Account balance ($)</label><input id="bal" type="number" inputmode="decimal" value="10000" step="any"></div>
+      <div class="hide" id="tgtBox"><label>Target profit ($)</label><input id="tgt" type="number" inputmode="decimal" value="200" step="any"></div>
+      <div class="hide" id="lossBox"><label>Max loss ($, optional)</label><input id="mloss" type="number" inputmode="decimal" placeholder="—" step="any"></div>
+      <div class="hide" id="rrrBox"><label>Custom RRR (min 1)</label><input id="rrr" type="number" inputmode="decimal" value="1" step="0.1" min="1"></div>
+      <div class="hide" id="riskBox"><label>Risk (% of balance)</label><input id="risk" type="number" inputmode="decimal" value="1" step="0.1"></div>
+    </div>
+  </div>
+
+  <div class="card" id="out"></div>
+  <div class="hint">Contract size defaults to 100,000 units for FX pairs and 100 oz for XAUUSD. Index CFDs (S&amp;P500, Nasdaq 100, Dow, Nikkei 225, DAX 40, FTSE 100) default to $1 per point per 1.0 lot — brokers vary widely here, so adjust "Contract size" to match your broker's contract specs. USDJPY and USDCAD are converted to USD at the current price; AUDCAD uses the USDCAD rate you enter. BTCUSD defaults to 1 BTC per 1.0 lot — adjust "Contract size" if your broker sizes it differently (e.g. mini/micro lots). Spread and swap not included.</div>
+</div>
+
+<script>
+const I={
+  EURUSD:{pip:1e-4,c:1e5,jpy:0,d:5,pl:"pips"},
+  GBPUSD:{pip:1e-4,c:1e5,jpy:0,d:5,pl:"pips"},
+  AUDUSD:{pip:1e-4,c:1e5,jpy:0,d:5,pl:"pips"},
+  USDJPY:{pip:.01,c:1e5,jpy:1,d:3,pl:"pips"},
+  NZDJPY:{pip:.01,c:1e5,jpy:1,d:3,pl:"pips"},
+  USDCAD:{pip:1e-4,c:1e5,jpy:1,d:5,pl:"pips"},
+  AUDCAD:{pip:1e-4,c:1e5,jpy:0,x:1,d:5,pl:"pips"},
+  XAUUSD:{pip:.1,c:100,jpy:0,d:2,pl:"pips"},
+  BTCUSD:{pip:1,c:1,jpy:0,d:1,pl:"points"},
+  US500:{pip:1,c:1,jpy:0,d:1,pl:"points"},
+  NAS100:{pip:1,c:1,jpy:0,d:1,pl:"points"},
+  US30:{pip:1,c:1,jpy:0,d:0,pl:"points"},
+  JPN225:{pip:1,c:1,jpy:0,d:0,pl:"points"},
+  GER40:{pip:1,c:1,jpy:0,d:1,pl:"points"},
+  UK100:{pip:1,c:1,jpy:0,d:1,pl:"points"}
+};
+const $=id=>document.getElementById(id);
+let dir=1,mode=1;
+const usd=n=>(n<0?"-":"")+"$"+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const num=id=>parseFloat($(id).value);
+
+// value in USD of a price move `dist` (positive = in favour) for `lots`
+function val(dist,lots,ref,s){let v=dist*s.c*lots;return s.x?v/s.fx:s.jpy?v/ref:v}
+function spec(){const base=I[$("inst").value],cs=num("csize"),fx=num("fx");return {...base,c:cs>0?cs:base.c,fx:fx>0?fx:1.36}}
+
+function calc(){
+  const s=spec(),entry=num("entry"),comm=num("comm")||0,bal=num("bal")||0;
+  let h="";
+  if(mode===1){
+    const lots=num("lots"),ex=num("exit");
+    if(![lots,entry,ex].every(isFinite)){$("out").innerHTML="<div class='hint'>Enter lot size, entry and exit.</div>";return}
+    const move=(ex-entry)*dir,gross=val(move,lots,ex,s),cost=comm*lots,net=gross-cost;
+    const pips=move/s.pip,cls=net>=0?"win":"loss";
+    h+=`<div class="big ${cls}">${net>=0?"+":""}${usd(net)}</div>`;
+    h+=row(s.pl[0].toUpperCase()+s.pl.slice(1),(pips>=0?"+":"")+pips.toFixed(1));
+    h+=row("Gross P&L",usd(gross));
+    h+=row("Commission",usd(-cost));
+    if(bal>0)h+=row("Account impact",(net/bal*100).toFixed(2)+"%");
+    const tp=num("tp");
+    if(isFinite(tp)){const tpv=val((tp-entry)*dir,lots,tp,s)-cost;h+=row("P&L at take profit",usd(tpv))}
+  }else if(mode===3){
+    const lots=num("lots"),tg=num("tgt"),ml=num("mloss");
+    if(![lots,entry,tg].every(isFinite)||lots<=0||tg<=0){$("out").innerHTML="<div class='hint'>Enter lot size, entry and target profit.</div>";return}
+    const dist=(amt,sgn)=>{let p=entry,d=0;for(let i=0;i<5;i++){d=s.x?amt*s.fx/(s.c*lots):s.jpy?amt*p/(s.c*lots):amt/(s.c*lots);p=entry+sgn*dir*d}return d};
+    const dTP=dist(tg+comm*lots,1),tpPrice=entry+dir*dTP;
+    h+=`<div class="hint" style="margin:0">Take profit at</div><div class="big win">${tpPrice.toFixed(s.d)}</div>`;
+    h+=row("Distance",(dTP/s.pip).toFixed(1)+" "+s.pl);
+    h+=row("Net profit",usd(tg));
+    if(bal>0)h+=row("Account gain",(tg/bal*100).toFixed(2)+"%");
+    if(isFinite(ml)&&ml>0){
+      const gl=ml-comm*lots;
+      if(gl<=0){h+=row("Stop loss","<span class='loss'>Max loss is below commission</span>")}
+      else{
+        const dSL=dist(gl,-1),slPrice=entry-dir*dSL;
+        h+=row("Stop loss at","<span class='loss'>"+slPrice.toFixed(s.d)+"</span>");
+        h+=row("Stop distance",(dSL/s.pip).toFixed(1)+" "+s.pl);
+        h+=row("Risk : Reward","1 : "+(tg/ml).toFixed(2));
+        if(bal>0)h+=row("Account risk",(ml/bal*100).toFixed(2)+"%");
+      }
+    }
+  }else if(mode===4){
+    const lots=num("lots"),sl=num("sl"),custom=num("rrr");
+    if(![lots,entry,sl].every(isFinite)||lots<=0){$("out").innerHTML="<div class='hint'>Enter lot size, entry and stop loss.</div>";return}
+    const dist=(entry-sl)*dir;
+    if(dist<=0){$("out").innerHTML="<div class='hint loss'>Stop loss must be on the losing side of entry for a "+(dir>0?"buy":"sell")+".</div>";return}
+    const riskUsd=val(dist,lots,sl,s)+comm*lots,riskPips=dist/s.pip;
+    h+=row("Risk (stop distance)",riskPips.toFixed(1)+" "+s.pl);
+    h+=row("Risk amount",usd(riskUsd));
+    if(bal>0)h+=row("Account risk",(riskUsd/bal*100).toFixed(2)+"%");
+    h+='<div class="hint" style="margin-top:10px">Take-profit projections</div>';
+    const levels=[...new Set([1,2,3,Math.max(1,custom||1)])];
+    levels.sort((a,b)=>a-b);
+    levels.forEach(r=>{
+      const gainDist=dist*r,tpPrice=entry+dir*gainDist;
+      const profit=val(gainDist,lots,tpPrice,s)-comm*lots;
+      h+=`<div class="row"><span>1 : ${r%1===0?r:r.toFixed(1)}</span><span>${tpPrice.toFixed(s.d)} &nbsp;<span class="win">${usd(profit)}</span></span></div>`;
+    });
+  }else{
+    const sl=num("sl"),rk=num("risk"),tp=num("tp");
+    if(![entry,sl,rk].every(isFinite)||bal<=0){$("out").innerHTML="<div class='hint'>Enter entry, stop loss, balance and risk %.</div>";return}
+    const dist=(entry-sl)*dir;
+    if(dist<=0){$("out").innerHTML="<div class='hint loss'>Stop loss must be on the losing side of entry for a "+(dir>0?"buy":"sell")+".</div>";return}
+    const riskUsd=bal*rk/100,perLot=val(dist,1,sl,s)+comm;
+    const lots=riskUsd/perLot;
+    h+=`<div class="big">${lots.toFixed(2)} lots</div>`;
+    h+=row("Risk amount",usd(riskUsd));
+    h+=row("Stop distance",(dist/s.pip).toFixed(1)+" "+s.pl);
+    h+=row("Units",Math.round(lots*s.c).toLocaleString());
+    if(isFinite(tp)){
+      const gain=(tp-entry)*dir;
+      if(gain>0){const w=val(gain,lots,tp,s)-comm*lots;h+=row("Reward at TP",usd(w));h+=row("Risk : Reward","1 : "+(w/riskUsd).toFixed(2))}
+    }
+  }
+  $("out").innerHTML=h;
+}
+function row(a,b){return `<div class="row"><span>${a}</span><span>${b}</span></div>`}
+
+function setMode(m){
+  mode=m;[1,2,3,4].forEach(i=>$("t"+i).classList.toggle("on",m===i));
+  const t=(id,hide)=>$(id).classList.toggle("hide",hide);
+  t("lotBox",m===2);
+  $("exitL").parentElement.classList.toggle("hide",m!==1);
+  t("slBox",m===1||m===3);
+  t("riskBox",m!==2);
+  t("tpBox",m===3||m===4);
+  t("tgtBox",m!==3);t("lossBox",m!==3);
+  t("rrrBox",m!==4);
+  calc();
+}
+function setDir(d){dir=d;$("buy").classList.toggle("on",d>0);$("sell").classList.toggle("on",d<0);calc()}
+const defaults={
+  EURUSD:[1.0850,1.0890,1.0820],GBPUSD:[1.2700,1.2750,1.2660],AUDUSD:[0.6600,0.6640,0.6570],
+  USDJPY:[150.00,150.60,149.50],NZDJPY:[91.50,92.00,90.80],USDCAD:[1.3600,1.3650,1.3560],AUDCAD:[0.9000,0.9050,0.8960],XAUUSD:[2650.0,2662.0,2642.0],BTCUSD:[65000,65500,64500],
+  US500:[5700,5730,5670],NAS100:[19700,19800,19550],US30:[41500,41650,41300],
+  JPN225:[38500,38700,38200],GER40:[18700,18800,18500],UK100:[8200,8250,8100]
+};
+$("inst").onchange=()=>{const d=defaults[$("inst").value];$("entry").value=d[0];$("exit").value=d[1];$("sl").value=d[2];$("tp").value="";$("csize").value=I[$("inst").value].c;$("fxBox").classList.toggle("hide",!I[$("inst").value].x);calc()};
+$("t1").onclick=()=>setMode(1);$("t2").onclick=()=>setMode(2);$("t3").onclick=()=>setMode(3);$("t4").onclick=()=>setMode(4);
+$("buy").onclick=()=>setDir(1);$("sell").onclick=()=>setDir(-1);
+document.querySelectorAll("input").forEach(e=>e.oninput=calc);
+setMode(1);
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(()=>{})});
+}
+</script>
+</body>
+</html></</html>html>
